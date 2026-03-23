@@ -120,12 +120,12 @@ def normalize_rates_category(user_text: str):
 def normalize_cash_rates_location(user_text: str):
     mapping = {
         "🇹🇭 Bangkok THB": "bangkok_thb",
-        "🇹🇭 Бангкок THB": "bangkok_thb",
         "🇫🇷 Paris EUR": "paris_eur",
-        "🇫🇷 Париж EUR": "paris_eur",
         "🇺🇸 Las Vegas USD": "vegas_usd",
-        "🇺🇸 Лас-Вегас USD": "vegas_usd",
         "🇲🇦 Marrakech MAD": "marrakech_mad",
+        "🇹🇭 Бангкок THB": "bangkok_thb",
+        "🇫🇷 Париж EUR": "paris_eur",
+        "🇺🇸 Лас-Вегас USD": "vegas_usd",
         "🇲🇦 Марракеш MAD": "marrakech_mad",
     }
     return mapping.get(user_text)
@@ -228,7 +228,6 @@ def get_amount_mode_label(language: str, mode: str) -> str:
 
 def build_amount_prompt(language: str, amount_mode: str, currency: str) -> str:
     currency = currency or "selected currency"
-
     prompts = {
         "en": {
             "send": f"Please enter the amount you want to send in {currency}:",
@@ -243,7 +242,6 @@ def build_amount_prompt(language: str, amount_mode: str, currency: str) -> str:
             "receive": f"Будь ласка, введіть суму, яку ви хочете отримати в {currency}:",
         },
     }
-
     return prompts.get(language, prompts["en"])[amount_mode]
 
 
@@ -565,7 +563,7 @@ def get_cash_rates_keyboard(language: str) -> ReplyKeyboardMarkup:
         ],
         "ua": [
             ["🇹🇭 Bangkok THB", "🇫🇷 Париж EUR"],
-            ["🇺🇸 Las Vegas USD", "🇲🇦 Marrakech MAD"],
+            ["🇺🇸 Лас-Вегас USD", "🇲🇦 Марракеш MAD"],
             ["🔙 Назад"],
         ],
     }
@@ -615,7 +613,7 @@ def get_text(language: str, key: str) -> str:
             "choose_rates_category": "Select a category:",
             "choose_cash_rates_location": "Select a cash location:",
             "network_warning": "Please make sure to select the correct network.\n\nSending funds on the wrong network may result in permanent loss.",
-            "next_receive_details": "Great. Now let's set the receive details.",
+            "next_receive_method": "Great. Now select what you want to receive.",
             "invalid_amount": "Please enter a valid amount.",
             "exchange_summary_title": "Your request:",
             "exchange_summary_send": "Send: {value}",
@@ -696,7 +694,7 @@ def get_text(language: str, key: str) -> str:
             "choose_rates_category": "Sélectionnez une catégorie :",
             "choose_cash_rates_location": "Sélectionnez une localisation cash :",
             "network_warning": "Veuillez vous assurer de sélectionner le bon réseau.\n\nUn envoi sur le mauvais réseau peut entraîner une perte définitive des fonds.",
-            "next_receive_details": "Parfait. Passons maintenant aux détails de réception.",
+            "next_receive_method": "Parfait. Sélectionnez maintenant ce que vous souhaitez recevoir.",
             "invalid_amount": "Veuillez saisir un montant valide.",
             "exchange_summary_title": "Votre demande :",
             "exchange_summary_send": "Envoyer : {value}",
@@ -777,7 +775,7 @@ def get_text(language: str, key: str) -> str:
             "choose_rates_category": "Оберіть категорію:",
             "choose_cash_rates_location": "Оберіть локацію для готівки:",
             "network_warning": "Будь ласка, переконайтеся, що ви обрали правильну мережу.\n\nВідправка коштів у неправильній мережі може призвести до їх безповоротної втрати.",
-            "next_receive_details": "Чудово. Тепер переходимо до деталей отримання.",
+            "next_receive_method": "Чудово. Тепер виберіть, що ви хочете отримати.",
             "invalid_amount": "Будь ласка, введіть коректну суму.",
             "exchange_summary_title": "Ваш запит:",
             "exchange_summary_send": "Відправити: {value}",
@@ -870,7 +868,7 @@ async def go_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    if step == "send":
+    if step == "send_method":
         context.user_data["mode"] = None
         context.user_data["exchange_step"] = None
         await update.message.reply_text(
@@ -879,88 +877,26 @@ async def go_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    if step == "receive":
-        context.user_data["exchange_step"] = "send"
+    if step == "send_details":
+        context.user_data["exchange_step"] = "send_method"
         await update.message.reply_text(
             get_text(language, "exchange_send"),
             reply_markup=get_exchange_method_keyboard(language),
         )
         return
 
-    if step == "send_details":
-        method = context.user_data.get("exchange_send_method")
-        detail_step = context.user_data.get("exchange_send_detail_step")
-
-        if method == "bank_transfer":
-            if detail_step == "bank_method":
-                context.user_data["exchange_send_detail_step"] = "bank_currency"
-                await update.message.reply_text(
-                    get_text(language, "bank_currency"),
-                    reply_markup=get_bank_currency_keyboard(language),
-                )
-                return
-            context.user_data["exchange_step"] = "receive"
-            await update.message.reply_text(
-                get_text(language, "exchange_receive"),
-                reply_markup=get_receive_method_keyboard(language),
-            )
-            return
-
-        if method == "crypto":
-            if detail_step == "crypto_network":
-                context.user_data["exchange_send_detail_step"] = "crypto_asset"
-                await update.message.reply_text(
-                    get_text(language, "crypto_asset"),
-                    reply_markup=get_crypto_asset_keyboard(language),
-                )
-                return
-            context.user_data["exchange_step"] = "receive"
-            await update.message.reply_text(
-                get_text(language, "exchange_receive"),
-                reply_markup=get_receive_method_keyboard(language),
-            )
-            return
-
-        if method in ["paypal", "skrill", "cash"]:
-            context.user_data["exchange_step"] = "receive"
-            await update.message.reply_text(
-                get_text(language, "exchange_receive"),
-                reply_markup=get_receive_method_keyboard(language),
-            )
-            return
+    if step == "receive_method":
+        context.user_data["exchange_step"] = "send_details"
+        await ask_method_details(update, context, context.user_data.get("exchange_send_method"), "send")
+        return
 
     if step == "receive_details":
-        method = context.user_data.get("exchange_receive_method")
-        detail_step = context.user_data.get("exchange_receive_detail_step")
-
-        if method == "bank_transfer":
-            if detail_step == "bank_method":
-                context.user_data["exchange_receive_detail_step"] = "bank_currency"
-                await update.message.reply_text(
-                    get_text(language, "bank_currency"),
-                    reply_markup=get_bank_currency_keyboard(language),
-                )
-                return
-            context.user_data["exchange_step"] = "send_details"
-            await ask_method_details(update, context, context.user_data.get("exchange_send_method"), "send")
-            return
-
-        if method == "crypto":
-            if detail_step == "crypto_network":
-                context.user_data["exchange_receive_detail_step"] = "crypto_asset"
-                await update.message.reply_text(
-                    get_text(language, "crypto_asset"),
-                    reply_markup=get_crypto_asset_keyboard(language),
-                )
-                return
-            context.user_data["exchange_step"] = "send_details"
-            await ask_method_details(update, context, context.user_data.get("exchange_send_method"), "send")
-            return
-
-        if method in ["paypal", "skrill", "cash"]:
-            context.user_data["exchange_step"] = "send_details"
-            await ask_method_details(update, context, context.user_data.get("exchange_send_method"), "send")
-            return
+        context.user_data["exchange_step"] = "receive_method"
+        await update.message.reply_text(
+            get_text(language, "exchange_receive"),
+            reply_markup=get_receive_method_keyboard(language),
+        )
+        return
 
     if step == "amount_mode":
         context.user_data["exchange_step"] = "receive_details"
@@ -984,72 +920,8 @@ async def go_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # =========================
-# MAIN FLOW HANDLERS
+# EXCHANGE DETAIL ROUTING
 # =========================
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data.clear()
-    await update.message.reply_text(
-        get_text("en", "welcome"),
-        reply_markup=get_language_keyboard(),
-    )
-
-
-async def handle_support_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    language = get_user_language(context)
-    user = update.effective_user
-    message_text = update.message.text
-    username = f"@{user.username}" if user.username else "No username"
-    deal_id = generate_deal_id()
-    timestamp = get_timestamp()
-
-    admin_message = (
-        "📞 New Support Message\n\n"
-        f"🆔 Deal ID: {deal_id}\n"
-        f"📌 Status: Pending\n"
-        f"👤 User: {username}\n"
-        f"🆔 Telegram ID: {user.id}\n"
-        f"🌐 Language: {language.upper()}\n"
-        f"🕒 Time: {timestamp}\n\n"
-        f"📝 Message:\n{message_text}"
-    )
-
-    await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text=admin_message)
-    context.user_data["mode"] = None
-
-    await update.message.reply_text(
-        get_text(language, "support_sent"),
-        reply_markup=get_main_menu_keyboard(language),
-    )
-
-
-async def handle_custom_request_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    language = get_user_language(context)
-    user = update.effective_user
-    message_text = update.message.text
-    username = f"@{user.username}" if user.username else "No username"
-    deal_id = generate_deal_id()
-    timestamp = get_timestamp()
-
-    admin_message = (
-        "🧾 New Custom Request\n\n"
-        f"🆔 Deal ID: {deal_id}\n"
-        f"📌 Status: Pending\n"
-        f"👤 User: {username}\n"
-        f"🆔 Telegram ID: {user.id}\n"
-        f"🌐 Language: {language.upper()}\n"
-        f"🕒 Time: {timestamp}\n\n"
-        f"📝 Message:\n{message_text}"
-    )
-
-    await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text=admin_message)
-    context.user_data.clear()
-
-    await update.message.reply_text(
-        get_text(language, "custom_request_sent").format(deal_id=deal_id),
-        reply_markup=get_main_menu_keyboard(language),
-    )
-
 
 async def ask_method_details(update: Update, context: ContextTypes.DEFAULT_TYPE, method: str, side: str):
     language = get_user_language(context)
@@ -1086,11 +958,18 @@ async def ask_method_details(update: Update, context: ContextTypes.DEFAULT_TYPE,
         )
         return
 
-    context.user_data["exchange_step"] = "amount_mode"
-    await update.message.reply_text(
-        get_text(language, "choose_amount_type"),
-        reply_markup=get_amount_choice_keyboard(language),
-    )
+    if side == "send":
+        context.user_data["exchange_step"] = "receive_method"
+        await update.message.reply_text(
+            get_text(language, "next_receive_method"),
+            reply_markup=get_receive_method_keyboard(language),
+        )
+    else:
+        context.user_data["exchange_step"] = "amount_mode"
+        await update.message.reply_text(
+            get_text(language, "choose_amount_type"),
+            reply_markup=get_amount_choice_keyboard(language),
+        )
 
 
 async def handle_side_details(update: Update, context: ContextTypes.DEFAULT_TYPE, side: str):
@@ -1102,9 +981,11 @@ async def handle_side_details(update: Update, context: ContextTypes.DEFAULT_TYPE
     if method == "cash":
         context.user_data[f"exchange_{side}_details"] = user_text
         if side == "send":
-            context.user_data["exchange_step"] = "receive_details"
-            await update.message.reply_text(get_text(language, "next_receive_details"))
-            await ask_method_details(update, context, context.user_data.get("exchange_receive_method"), "receive")
+            context.user_data["exchange_step"] = "receive_method"
+            await update.message.reply_text(
+                get_text(language, "next_receive_method"),
+                reply_markup=get_receive_method_keyboard(language),
+            )
         else:
             context.user_data["exchange_step"] = "amount_mode"
             await update.message.reply_text(
@@ -1126,9 +1007,11 @@ async def handle_side_details(update: Update, context: ContextTypes.DEFAULT_TYPE
         if detail_step == "bank_method":
             context.user_data[f"exchange_{side}_bank_method"] = user_text
             if side == "send":
-                context.user_data["exchange_step"] = "receive_details"
-                await update.message.reply_text(get_text(language, "next_receive_details"))
-                await ask_method_details(update, context, context.user_data.get("exchange_receive_method"), "receive")
+                context.user_data["exchange_step"] = "receive_method"
+                await update.message.reply_text(
+                    get_text(language, "next_receive_method"),
+                    reply_markup=get_receive_method_keyboard(language),
+                )
             else:
                 context.user_data["exchange_step"] = "amount_mode"
                 await update.message.reply_text(
@@ -1152,9 +1035,11 @@ async def handle_side_details(update: Update, context: ContextTypes.DEFAULT_TYPE
             await update.message.reply_text(get_text(language, "network_warning"))
 
             if side == "send":
-                context.user_data["exchange_step"] = "receive_details"
-                await update.message.reply_text(get_text(language, "next_receive_details"))
-                await ask_method_details(update, context, context.user_data.get("exchange_receive_method"), "receive")
+                context.user_data["exchange_step"] = "receive_method"
+                await update.message.reply_text(
+                    get_text(language, "next_receive_method"),
+                    reply_markup=get_receive_method_keyboard(language),
+                )
             else:
                 context.user_data["exchange_step"] = "amount_mode"
                 await update.message.reply_text(
@@ -1167,9 +1052,11 @@ async def handle_side_details(update: Update, context: ContextTypes.DEFAULT_TYPE
         if detail_step == "wallet_currency":
             context.user_data[f"exchange_{side}_wallet_currency"] = user_text
             if side == "send":
-                context.user_data["exchange_step"] = "receive_details"
-                await update.message.reply_text(get_text(language, "next_receive_details"))
-                await ask_method_details(update, context, context.user_data.get("exchange_receive_method"), "receive")
+                context.user_data["exchange_step"] = "receive_method"
+                await update.message.reply_text(
+                    get_text(language, "next_receive_method"),
+                    reply_markup=get_receive_method_keyboard(language),
+                )
             else:
                 context.user_data["exchange_step"] = "amount_mode"
                 await update.message.reply_text(
@@ -1183,6 +1070,10 @@ async def handle_side_details(update: Update, context: ContextTypes.DEFAULT_TYPE
         context.user_data["exchange_step"] = None
         await update.message.reply_text(get_text(language, "custom_request_prompt"))
 
+
+# =========================
+# EXCHANGE FLOW
+# =========================
 
 async def handle_exchange_amount_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = get_user_language(context)
@@ -1278,7 +1169,7 @@ async def handle_exchange_flow(update: Update, context: ContextTypes.DEFAULT_TYP
         await go_back(update, context)
         return
 
-    if step == "send":
+    if step == "send_method":
         selected_method = normalize_send_method(user_text)
         if not selected_method:
             await update.message.reply_text(
@@ -1294,15 +1185,15 @@ async def handle_exchange_flow(update: Update, context: ContextTypes.DEFAULT_TYP
             return
 
         context.user_data["exchange_send_method"] = selected_method
-        context.user_data["exchange_step"] = "receive"
-
-        await update.message.reply_text(
-            get_text(language, "exchange_receive"),
-            reply_markup=get_receive_method_keyboard(language),
-        )
+        context.user_data["exchange_step"] = "send_details"
+        await ask_method_details(update, context, selected_method, "send")
         return
 
-    if step == "receive":
+    if step == "send_details":
+        await handle_side_details(update, context, "send")
+        return
+
+    if step == "receive_method":
         selected_method = normalize_receive_method(user_text)
         if not selected_method:
             await update.message.reply_text(
@@ -1318,13 +1209,8 @@ async def handle_exchange_flow(update: Update, context: ContextTypes.DEFAULT_TYP
             return
 
         context.user_data["exchange_receive_method"] = selected_method
-        context.user_data["exchange_step"] = "send_details"
-
-        await ask_method_details(update, context, context.user_data.get("exchange_send_method"), "send")
-        return
-
-    if step == "send_details":
-        await handle_side_details(update, context, "send")
+        context.user_data["exchange_step"] = "receive_details"
+        await ask_method_details(update, context, selected_method, "receive")
         return
 
     if step == "receive_details":
@@ -1561,7 +1447,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if user_text in ["💱 Exchange", "💱 Échange", "💱 Обмін"]:
         context.user_data["mode"] = "exchange"
-        context.user_data["exchange_step"] = "send"
+        context.user_data["exchange_step"] = "send_method"
         context.user_data["exchange_send_method"] = None
         context.user_data["exchange_receive_method"] = None
         context.user_data["exchange_send_detail_step"] = None
