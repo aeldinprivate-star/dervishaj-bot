@@ -89,6 +89,18 @@ def normalize_receive_method(user_text: str):
     return mapping.get(user_text)
 
 
+def normalize_amount_mode(user_text: str):
+    mapping = {
+        "✏️ Amount I send": "send",
+        "✏️ Montant que j’envoie": "send",
+        "✏️ Сума, яку я надсилаю": "send",
+        "🎯 Amount I want to receive": "receive",
+        "🎯 Montant que je veux recevoir": "receive",
+        "🎯 Сума, яку я хочу отримати": "receive",
+    }
+    return mapping.get(user_text)
+
+
 def format_method(method: str, language: str) -> str:
     labels = {
         "en": {
@@ -166,14 +178,50 @@ def get_side_currency(context: ContextTypes.DEFAULT_TYPE, side: str) -> str:
     return ""
 
 
-def build_amount_prompt(language: str, currency: str) -> str:
-    currency = currency or "selected currency"
-    prompts = {
-        "en": f"Please enter the amount you want to send in {currency}:",
-        "fr": f"Veuillez saisir le montant que vous souhaitez envoyer en {currency} :",
-        "ua": f"Будь ласка, введіть суму, яку ви хочете надіслати в {currency}:",
+def get_amount_mode_label(language: str, mode: str) -> str:
+    labels = {
+        "en": {
+            "send": "Amount I send",
+            "receive": "Amount I want to receive",
+        },
+        "fr": {
+            "send": "Montant que j’envoie",
+            "receive": "Montant que je veux recevoir",
+        },
+        "ua": {
+            "send": "Сума, яку я надсилаю",
+            "receive": "Сума, яку я хочу отримати",
+        },
     }
-    return prompts.get(language, prompts["en"])
+    return labels.get(language, labels["en"]).get(mode, mode)
+
+
+def build_amount_prompt(language: str, amount_mode: str, currency: str) -> str:
+    currency = currency or "selected currency"
+
+    prompts = {
+        "en": {
+            "send": f"Please enter the amount you want to send in {currency}:",
+            "receive": f"Please enter the amount you want to receive in {currency}:",
+        },
+        "fr": {
+            "send": f"Veuillez saisir le montant que vous souhaitez envoyer en {currency} :",
+            "receive": f"Veuillez saisir le montant que vous souhaitez recevoir en {currency} :",
+        },
+        "ua": {
+            "send": f"Будь ласка, введіть суму, яку ви хочете надіслати в {currency}:",
+            "receive": f"Будь ласка, введіть суму, яку ви хочете отримати в {currency}:",
+        },
+    }
+
+    return prompts.get(language, prompts["en"])[amount_mode]
+
+
+def get_amount_currency(context: ContextTypes.DEFAULT_TYPE) -> str:
+    amount_mode = context.user_data.get("exchange_amount_mode", "send")
+    if amount_mode == "receive":
+        return get_side_currency(context, "receive")
+    return get_side_currency(context, "send")
 
 
 def build_side_summary(context: ContextTypes.DEFAULT_TYPE, side: str, language: str) -> str:
@@ -428,6 +476,27 @@ def get_wallet_currency_keyboard(language: str) -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(labels.get(language, labels["en"]), resize_keyboard=True, one_time_keyboard=False)
 
 
+def get_amount_choice_keyboard(language: str) -> ReplyKeyboardMarkup:
+    labels = {
+        "en": [
+            ["✏️ Amount I send"],
+            ["🎯 Amount I want to receive"],
+            ["🔙 Back"],
+        ],
+        "fr": [
+            ["✏️ Montant que j’envoie"],
+            ["🎯 Montant que je veux recevoir"],
+            ["🔙 Retour"],
+        ],
+        "ua": [
+            ["✏️ Сума, яку я надсилаю"],
+            ["🎯 Сума, яку я хочу отримати"],
+            ["🔙 Назад"],
+        ],
+    }
+    return ReplyKeyboardMarkup(labels.get(language, labels["en"]), resize_keyboard=True, one_time_keyboard=False)
+
+
 def get_exchange_result_keyboard(language: str) -> InlineKeyboardMarkup:
     labels = {
         "en": [
@@ -467,16 +536,19 @@ def get_text(language: str, key: str) -> str:
             "crypto_asset": "Select cryptocurrency:",
             "crypto_network": "Select network:",
             "wallet_currency": "Select currency:",
+            "choose_amount_type": "Which amount do you want to enter?",
             "network_warning": "Please make sure to select the correct network.\n\nSending funds on the wrong network may result in permanent loss.",
             "next_receive_details": "Great. Now let's set the receive details.",
             "invalid_amount": "Please enter a valid amount.",
             "exchange_summary_title": "Your request:",
             "exchange_summary_send": "Send: {value}",
             "exchange_summary_receive": "Receive: {value}",
-            "exchange_summary_amount": "Amount to send: {value}",
+            "exchange_summary_entered": "Client entered: {value}",
+            "exchange_summary_amount": "Entered amount: {value}",
             "exchange_summary_rate_reference": "Rate reference: {value}",
             "exchange_summary_fees": "Fees: {value}",
-            "exchange_summary_final_note": "Final rate and amount will be confirmed by support.",
+            "exchange_summary_final_note_send": "Final amount to receive will be confirmed by support.",
+            "exchange_summary_final_note_receive": "Final amount to send will be confirmed by support.",
             "request_sent": "✅ Your request has been sent.\n\nReference: {deal_id}\n\nOur team will review it and get back to you shortly.",
             "request_cancelled": "❌ Request cancelled.",
             "custom_request_prompt": "Please describe your request:",
@@ -512,16 +584,19 @@ def get_text(language: str, key: str) -> str:
             "crypto_asset": "Sélectionnez la cryptomonnaie :",
             "crypto_network": "Sélectionnez le réseau :",
             "wallet_currency": "Sélectionnez la devise :",
+            "choose_amount_type": "Quel montant souhaitez-vous renseigner ?",
             "network_warning": "Veuillez vous assurer de sélectionner le bon réseau.\n\nUn envoi sur le mauvais réseau peut entraîner une perte définitive des fonds.",
             "next_receive_details": "Parfait. Passons maintenant aux détails de réception.",
             "invalid_amount": "Veuillez saisir un montant valide.",
             "exchange_summary_title": "Votre demande :",
             "exchange_summary_send": "Envoyer : {value}",
             "exchange_summary_receive": "Recevoir : {value}",
-            "exchange_summary_amount": "Montant à envoyer : {value}",
+            "exchange_summary_entered": "Montant saisi par le client : {value}",
+            "exchange_summary_amount": "Montant saisi : {value}",
             "exchange_summary_rate_reference": "Référence du taux : {value}",
             "exchange_summary_fees": "Frais : {value}",
-            "exchange_summary_final_note": "Le taux final et le montant final seront confirmés par le support.",
+            "exchange_summary_final_note_send": "Le montant final reçu sera confirmé par le support.",
+            "exchange_summary_final_note_receive": "Le montant final à envoyer sera confirmé par le support.",
             "request_sent": "✅ Votre demande a bien été envoyée.\n\nRéférence : {deal_id}\n\nNotre équipe va l’examiner et revenir vers vous rapidement.",
             "request_cancelled": "❌ Demande annulée.",
             "custom_request_prompt": "Veuillez décrire votre demande :",
@@ -557,16 +632,19 @@ def get_text(language: str, key: str) -> str:
             "crypto_asset": "Оберіть криптовалюту:",
             "crypto_network": "Оберіть мережу:",
             "wallet_currency": "Оберіть валюту:",
+            "choose_amount_type": "Яку суму ви хочете вказати?",
             "network_warning": "Будь ласка, переконайтеся, що ви обрали правильну мережу.\n\nВідправка коштів у неправильній мережі може призвести до їх безповоротної втрати.",
             "next_receive_details": "Чудово. Тепер переходимо до деталей отримання.",
             "invalid_amount": "Будь ласка, введіть коректну суму.",
             "exchange_summary_title": "Ваш запит:",
             "exchange_summary_send": "Відправити: {value}",
             "exchange_summary_receive": "Отримати: {value}",
-            "exchange_summary_amount": "Сума для відправки: {value}",
+            "exchange_summary_entered": "Клієнт ввів: {value}",
+            "exchange_summary_amount": "Введена сума: {value}",
             "exchange_summary_rate_reference": "Базовий курс: {value}",
             "exchange_summary_fees": "Комісія: {value}",
-            "exchange_summary_final_note": "Фінальний курс і фінальна сума будуть підтверджені підтримкою.",
+            "exchange_summary_final_note_send": "Фінальна сума до отримання буде підтверджена підтримкою.",
+            "exchange_summary_final_note_receive": "Фінальна сума до відправки буде підтверджена підтримкою.",
             "request_sent": "✅ Ваш запит надіслано.\n\nРеференс: {deal_id}\n\nНаша команда перегляне його та зв’яжеться з вами найближчим часом.",
             "request_cancelled": "❌ Запит скасовано.",
             "custom_request_prompt": "Будь ласка, опишіть ваш запит:",
@@ -691,9 +769,17 @@ async def go_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await ask_method_details(update, context, context.user_data.get("exchange_send_method"), "send")
             return
 
-    if step == "amount":
+    if step == "amount_mode":
         context.user_data["exchange_step"] = "receive_details"
         await ask_method_details(update, context, context.user_data.get("exchange_receive_method"), "receive")
+        return
+
+    if step == "amount":
+        context.user_data["exchange_step"] = "amount_mode"
+        await update.message.reply_text(
+            get_text(language, "choose_amount_type"),
+            reply_markup=get_amount_choice_keyboard(language),
+        )
         return
 
     context.user_data["mode"] = None
@@ -807,11 +893,10 @@ async def ask_method_details(update: Update, context: ContextTypes.DEFAULT_TYPE,
         )
         return
 
-    context.user_data["exchange_step"] = "amount"
-    send_currency = get_side_currency(context, "send")
+    context.user_data["exchange_step"] = "amount_mode"
     await update.message.reply_text(
-        build_amount_prompt(language, send_currency),
-        reply_markup=get_main_menu_keyboard(language),
+        get_text(language, "choose_amount_type"),
+        reply_markup=get_amount_choice_keyboard(language),
     )
 
 
@@ -828,11 +913,10 @@ async def handle_side_details(update: Update, context: ContextTypes.DEFAULT_TYPE
             await update.message.reply_text(get_text(language, "next_receive_details"))
             await ask_method_details(update, context, context.user_data.get("exchange_receive_method"), "receive")
         else:
-            context.user_data["exchange_step"] = "amount"
-            send_currency = get_side_currency(context, "send")
+            context.user_data["exchange_step"] = "amount_mode"
             await update.message.reply_text(
-                build_amount_prompt(language, send_currency),
-                reply_markup=get_main_menu_keyboard(language),
+                get_text(language, "choose_amount_type"),
+                reply_markup=get_amount_choice_keyboard(language),
             )
         return
 
@@ -853,11 +937,10 @@ async def handle_side_details(update: Update, context: ContextTypes.DEFAULT_TYPE
                 await update.message.reply_text(get_text(language, "next_receive_details"))
                 await ask_method_details(update, context, context.user_data.get("exchange_receive_method"), "receive")
             else:
-                context.user_data["exchange_step"] = "amount"
-                send_currency = get_side_currency(context, "send")
+                context.user_data["exchange_step"] = "amount_mode"
                 await update.message.reply_text(
-                    build_amount_prompt(language, send_currency),
-                    reply_markup=get_main_menu_keyboard(language),
+                    get_text(language, "choose_amount_type"),
+                    reply_markup=get_amount_choice_keyboard(language),
                 )
             return
 
@@ -880,11 +963,10 @@ async def handle_side_details(update: Update, context: ContextTypes.DEFAULT_TYPE
                 await update.message.reply_text(get_text(language, "next_receive_details"))
                 await ask_method_details(update, context, context.user_data.get("exchange_receive_method"), "receive")
             else:
-                context.user_data["exchange_step"] = "amount"
-                send_currency = get_side_currency(context, "send")
+                context.user_data["exchange_step"] = "amount_mode"
                 await update.message.reply_text(
-                    build_amount_prompt(language, send_currency),
-                    reply_markup=get_main_menu_keyboard(language),
+                    get_text(language, "choose_amount_type"),
+                    reply_markup=get_amount_choice_keyboard(language),
                 )
             return
 
@@ -896,11 +978,10 @@ async def handle_side_details(update: Update, context: ContextTypes.DEFAULT_TYPE
                 await update.message.reply_text(get_text(language, "next_receive_details"))
                 await ask_method_details(update, context, context.user_data.get("exchange_receive_method"), "receive")
             else:
-                context.user_data["exchange_step"] = "amount"
-                send_currency = get_side_currency(context, "send")
+                context.user_data["exchange_step"] = "amount_mode"
                 await update.message.reply_text(
-                    build_amount_prompt(language, send_currency),
-                    reply_markup=get_main_menu_keyboard(language),
+                    get_text(language, "choose_amount_type"),
+                    reply_markup=get_amount_choice_keyboard(language),
                 )
             return
 
@@ -908,6 +989,28 @@ async def handle_side_details(update: Update, context: ContextTypes.DEFAULT_TYPE
         context.user_data["mode"] = "custom_request"
         context.user_data["exchange_step"] = None
         await update.message.reply_text(get_text(language, "custom_request_prompt"))
+
+
+async def handle_exchange_amount_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    language = get_user_language(context)
+    mode = normalize_amount_mode(update.message.text)
+
+    if not mode:
+        await update.message.reply_text(
+            get_text(language, "choose_amount_type"),
+            reply_markup=get_amount_choice_keyboard(language),
+        )
+        return
+
+    context.user_data["exchange_amount_mode"] = mode
+    context.user_data["exchange_step"] = "amount"
+
+    amount_currency = get_amount_currency(context)
+
+    await update.message.reply_text(
+        build_amount_prompt(language, mode, amount_currency),
+        reply_markup=get_main_menu_keyboard(language),
+    )
 
 
 async def handle_exchange_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -919,10 +1022,11 @@ async def handle_exchange_amount(update: Update, context: ContextTypes.DEFAULT_T
         if amount <= 0:
             raise ValueError
     except ValueError:
-        send_currency = get_side_currency(context, "send")
+        amount_mode = context.user_data.get("exchange_amount_mode", "send")
+        amount_currency = get_amount_currency(context)
         await update.message.reply_text(get_text(language, "invalid_amount"))
         await update.message.reply_text(
-            build_amount_prompt(language, send_currency),
+            build_amount_prompt(language, amount_mode, amount_currency),
             reply_markup=get_main_menu_keyboard(language),
         )
         return
@@ -935,13 +1039,16 @@ async def handle_exchange_amount(update: Update, context: ContextTypes.DEFAULT_T
     receive_summary = build_side_summary(context, "receive", language)
     fees_info = calculate_exchange_fees(context, language)
 
-    send_currency = get_side_currency(context, "send")
-    amount_display = format_amount_with_currency(amount, send_currency)
+    amount_mode = context.user_data.get("exchange_amount_mode", "send")
+    amount_mode_label = get_amount_mode_label(language, amount_mode)
+    amount_currency = get_amount_currency(context)
+    amount_display = format_amount_with_currency(amount, amount_currency)
 
     summary_parts = [
         f"{get_text(language, 'exchange_summary_title')}\n",
         get_text(language, "exchange_summary_send").format(value=send_summary),
         get_text(language, "exchange_summary_receive").format(value=receive_summary),
+        get_text(language, "exchange_summary_entered").format(value=amount_mode_label),
         get_text(language, "exchange_summary_amount").format(value=amount_display),
         "",
     ]
@@ -955,7 +1062,11 @@ async def handle_exchange_amount(update: Update, context: ContextTypes.DEFAULT_T
         get_text(language, "exchange_summary_fees").format(value=fees_info["fees_text"])
     )
     summary_parts.append("")
-    summary_parts.append(get_text(language, "exchange_summary_final_note"))
+
+    if amount_mode == "receive":
+        summary_parts.append(get_text(language, "exchange_summary_final_note_receive"))
+    else:
+        summary_parts.append(get_text(language, "exchange_summary_final_note_send"))
 
     summary = "\n".join(summary_parts)
 
@@ -1027,6 +1138,10 @@ async def handle_exchange_flow(update: Update, context: ContextTypes.DEFAULT_TYP
         await handle_side_details(update, context, "receive")
         return
 
+    if step == "amount_mode":
+        await handle_exchange_amount_mode(update, context)
+        return
+
     if step == "amount":
         await handle_exchange_amount(update, context)
         return
@@ -1074,8 +1189,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         amount = context.user_data.get("exchange_amount", 0)
         fees_info = calculate_exchange_fees(context, language)
 
-        send_currency = get_side_currency(context, "send")
-        amount_display = format_amount_with_currency(amount, send_currency)
+        amount_mode = context.user_data.get("exchange_amount_mode", "send")
+        amount_mode_label = get_amount_mode_label(language, amount_mode)
+        amount_currency = get_amount_currency(context)
+        amount_display = format_amount_with_currency(amount, amount_currency)
 
         admin_message_parts = [
             "💱 New Exchange Request\n",
@@ -1088,13 +1205,19 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "",
             f"Send: {send_summary}",
             f"Receive: {receive_summary}",
-            f"Amount to send: {amount_display}",
+            f"Client entered: {amount_mode_label}",
+            f"Entered amount: {amount_display}",
         ]
 
         if fees_info.get("rate_reference"):
             admin_message_parts.append(f"Rate reference: {fees_info['rate_reference']}")
 
         admin_message_parts.append(f"Fees: {fees_info['fees_text']}")
+
+        if amount_mode == "receive":
+            admin_message_parts.append("Final amount to send: to be confirmed by support")
+        else:
+            admin_message_parts.append("Final amount to receive: to be confirmed by support")
 
         admin_message = "\n".join(admin_message_parts)
 
@@ -1140,6 +1263,8 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["exchange_receive_method"] = None
         context.user_data["exchange_send_detail_step"] = None
         context.user_data["exchange_receive_detail_step"] = None
+        context.user_data["exchange_amount_mode"] = None
+        context.user_data["exchange_amount"] = None
 
         await update.message.reply_text(
             get_text(language, "exchange_send"),
