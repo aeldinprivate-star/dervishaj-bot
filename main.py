@@ -23,7 +23,7 @@ ADMIN_CHAT_ID = int(os.environ.get("ADMIN_CHAT_ID", "0"))
 # HELPERS
 # =========================
 
-BACK_LABELS = ["🔙 Back", "🔙 Retour", "🔙 Назад"]
+BACK_LABELS = ["🔙 Back", "🔙 Retour", "🔙 Назад", "🔙 กลับ"]
 
 
 def is_back(text: str) -> bool:
@@ -60,13 +60,16 @@ def normalize_send_method(user_text: str):
         "💸 Bank Transfer": "bank_transfer",
         "💸 Virement": "bank_transfer",
         "💸 Банківський переказ": "bank_transfer",
+        "💸 โอนเงินผ่านธนาคาร": "bank_transfer",
         "🪙 Crypto": "crypto",
         "🪙 Крипто": "crypto",
+        "🪙 คริปโต": "crypto",
         "🌐 PayPal": "paypal",
         "🌐 Skrill": "skrill",
         "➕ Others": "others",
         "➕ Autre": "others",
         "➕ Інше": "others",
+        "➕ อื่นๆ": "others",
     }
     return mapping.get(user_text)
 
@@ -76,15 +79,19 @@ def normalize_receive_method(user_text: str):
         "💸 Bank Transfer": "bank_transfer",
         "💸 Virement": "bank_transfer",
         "💸 Банківський переказ": "bank_transfer",
+        "💸 โอนเงินผ่านธนาคาร": "bank_transfer",
         "🪙 Crypto": "crypto",
         "🪙 Крипто": "crypto",
+        "🪙 คริปโต": "crypto",
         "🌐 PayPal": "paypal",
         "🌐 Skrill": "skrill",
         "💵 Cash": "cash",
         "💵 Готівка": "cash",
+        "💵 เงินสด": "cash",
         "➕ Others": "others",
         "➕ Autre": "others",
         "➕ Інше": "others",
+        "➕ อื่นๆ": "others",
     }
     return mapping.get(user_text)
 
@@ -94,9 +101,11 @@ def normalize_amount_mode(user_text: str):
         "✏️ Amount I send": "send",
         "✏️ Montant que j’envoie": "send",
         "✏️ Сума, яку я надсилаю": "send",
+        "✏️ จำนวนที่ฉันส่ง": "send",
         "🎯 Amount I want to receive": "receive",
         "🎯 Montant que je veux recevoir": "receive",
         "🎯 Сума, яку я хочу отримати": "receive",
+        "🎯 จำนวนที่ฉันต้องการรับ": "receive",
     }
     return mapping.get(user_text)
 
@@ -106,13 +115,16 @@ def normalize_rates_category(user_text: str):
         "💸 Bank Transfer": "bank_transfer",
         "💸 Virement": "bank_transfer",
         "💸 Банківський переказ": "bank_transfer",
+        "💸 โอนเงินผ่านธนาคาร": "bank_transfer",
         "💵 Cash": "cash",
         "💵 Готівка": "cash",
+        "💵 เงินสด": "cash",
         "🌐 PayPal": "paypal",
         "🌐 Skrill": "skrill",
         "➕ Other": "other",
         "➕ Autre": "other",
         "➕ Інше": "other",
+        "➕ อื่นๆ": "other",
     }
     return mapping.get(user_text)
 
@@ -127,6 +139,10 @@ def normalize_cash_rates_location(user_text: str):
         "🇫🇷 Париж EUR": "paris_eur",
         "🇺🇸 Лас-Вегас USD": "vegas_usd",
         "🇲🇦 Марракеш MAD": "marrakech_mad",
+        "🇹🇭 กรุงเทพ THB": "bangkok_thb",
+        "🇫🇷 ปารีส EUR": "paris_eur",
+        "🇺🇸 ลาสเวกัส USD": "vegas_usd",
+        "🇲🇦 มาร์ราเกช MAD": "marrakech_mad",
     }
     return mapping.get(user_text)
 
@@ -156,6 +172,14 @@ def format_method(method: str, language: str) -> str:
             "skrill": "Skrill",
             "crypto": "Крипто",
             "others": "Інше",
+        },
+        "th": {
+            "bank_transfer": "โอนเงินผ่านธนาคาร",
+            "cash": "เงินสด",
+            "paypal": "PayPal",
+            "skrill": "Skrill",
+            "crypto": "คริปโต",
+            "others": "อื่นๆ",
         },
     }
     return labels.get(language, labels["en"]).get(method, method)
@@ -210,18 +234,10 @@ def get_side_currency(context: ContextTypes.DEFAULT_TYPE, side: str) -> str:
 
 def get_amount_mode_label(language: str, mode: str) -> str:
     labels = {
-        "en": {
-            "send": "Amount I send",
-            "receive": "Amount I want to receive",
-        },
-        "fr": {
-            "send": "Montant que j’envoie",
-            "receive": "Montant que je veux recevoir",
-        },
-        "ua": {
-            "send": "Сума, яку я надсилаю",
-            "receive": "Сума, яку я хочу отримати",
-        },
+        "en": {"send": "Amount I send", "receive": "Amount I want to receive"},
+        "fr": {"send": "Montant que j’envoie", "receive": "Montant que je veux recevoir"},
+        "ua": {"send": "Сума, яку я надсилаю", "receive": "Сума, яку я хочу отримати"},
+        "th": {"send": "จำนวนที่ฉันส่ง", "receive": "จำนวนที่ฉันต้องการรับ"},
     }
     return labels.get(language, labels["en"]).get(mode, mode)
 
@@ -240,6 +256,10 @@ def build_amount_prompt(language: str, amount_mode: str, currency: str) -> str:
         "ua": {
             "send": f"Будь ласка, введіть суму, яку ви хочете надіслати в {currency}:",
             "receive": f"Будь ласка, введіть суму, яку ви хочете отримати в {currency}:",
+        },
+        "th": {
+            "send": f"กรุณาระบุจำนวนที่คุณต้องการส่งเป็น {currency}:",
+            "receive": f"กรุณาระบุจำนวนที่คุณต้องการรับเป็น {currency}:",
         },
     }
     return prompts.get(language, prompts["en"])[amount_mode]
@@ -289,7 +309,9 @@ def calculate_exchange_fees(context: ContextTypes.DEFAULT_TYPE, language: str):
 
     result = {
         "fees_text": "Contact support" if language == "en" else (
-            "Contacter le support" if language == "fr" else "Зверніться до підтримки"
+            "Contacter le support" if language == "fr" else (
+                "Зверніться до підтримки" if language == "ua" else "ติดต่อฝ่ายซัพพอร์ต"
+            )
         ),
         "rate_reference": None,
     }
@@ -318,19 +340,21 @@ def calculate_exchange_fees(context: ContextTypes.DEFAULT_TYPE, language: str):
         result["rate_reference"] = (
             "Bitkub market rate" if language == "en"
             else "cours du marché Bitkub" if language == "fr"
-            else "ринковий курс Bitkub"
+            else ("ринковий курс Bitkub" if language == "ua" else "อัตราตลาด Bitkub")
         )
         if amount < 3000:
             result["fees_text"] = (
                 "2.5% (below 3,000 USD: minimum 75 USD fee)" if language == "en"
                 else "2.5% (en dessous de 3 000 USD : frais minimum de 75 USD)" if language == "fr"
-                else "2.5% (нижче 3 000 USD: мінімальна комісія 75 USD)"
+                else ("2.5% (нижче 3 000 USD: мінімальна комісія 75 USD)" if language == "ua"
+                      else "2.5% (ต่ำกว่า 3,000 USD: ค่าธรรมเนียมขั้นต่ำ 75 USD)")
             )
         else:
             result["fees_text"] = (
                 "2.5% (minimum trade 3,000 USD)" if language == "en"
                 else "2.5% (montant minimum : 3 000 USD)" if language == "fr"
-                else "2.5% (мінімальна сума угоди: 3 000 USD)"
+                else ("2.5% (мінімальна сума угоди: 3 000 USD)" if language == "ua"
+                      else "2.5% (ยอดขั้นต่ำ 3,000 USD)")
             )
         return result
 
@@ -338,19 +362,21 @@ def calculate_exchange_fees(context: ContextTypes.DEFAULT_TYPE, language: str):
         result["rate_reference"] = (
             "XE rate" if language == "en"
             else "taux XE" if language == "fr"
-            else "курс XE"
+            else ("курс XE" if language == "ua" else "อัตรา XE")
         )
         if amount < 5000:
             result["fees_text"] = (
                 "2% (below 5,000 EUR: minimum 100 EUR fee)" if language == "en"
                 else "2% (en dessous de 5 000 EUR : frais minimum de 100 EUR)" if language == "fr"
-                else "2% (нижче 5 000 EUR: мінімальна комісія 100 EUR)"
+                else ("2% (нижче 5 000 EUR: мінімальна комісія 100 EUR)" if language == "ua"
+                      else "2% (ต่ำกว่า 5,000 EUR: ค่าธรรมเนียมขั้นต่ำ 100 EUR)")
             )
         else:
             result["fees_text"] = (
                 "2% (minimum trade 5,000 EUR)" if language == "en"
                 else "2% (montant minimum : 5 000 EUR)" if language == "fr"
-                else "2% (мінімальна сума угоди: 5 000 EUR)"
+                else ("2% (мінімальна сума угоди: 5 000 EUR)" if language == "ua"
+                      else "2% (ยอดขั้นต่ำ 5,000 EUR)")
             )
         return result
 
@@ -358,7 +384,8 @@ def calculate_exchange_fees(context: ContextTypes.DEFAULT_TYPE, language: str):
         result["fees_text"] = (
             "2% (minimum trade 10,000 USD)" if language == "en"
             else "2% (montant minimum : 10 000 USD)" if language == "fr"
-            else "2% (мінімальна сума угоди: 10 000 USD)"
+            else ("2% (мінімальна сума угоди: 10 000 USD)" if language == "ua"
+                  else "2% (ยอดขั้นต่ำ 10,000 USD)")
         )
         return result
 
@@ -374,6 +401,7 @@ def get_language_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton("🇬🇧 English", callback_data="lang_en")],
         [InlineKeyboardButton("🇫🇷 Français", callback_data="lang_fr")],
         [InlineKeyboardButton("🇺🇦 Українська", callback_data="lang_ua")],
+        [InlineKeyboardButton("🇹🇭 ไทย", callback_data="lang_th")],
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -383,78 +411,37 @@ def get_main_menu_keyboard(language: str) -> ReplyKeyboardMarkup:
         "en": [["💱 Exchange", "📊 Rates"], ["📞 Support", "🌐 Language"]],
         "fr": [["💱 Échange", "📊 Tarifs"], ["📞 Support", "🌐 Langue"]],
         "ua": [["💱 Обмін", "📊 Тарифи"], ["📞 Підтримка", "🌐 Мова"]],
+        "th": [["💱 Exchange", "📊 Rates"], ["📞 Support", "🌐 Language"]],
     }
     return ReplyKeyboardMarkup(labels.get(language, labels["en"]), resize_keyboard=True, one_time_keyboard=False)
 
 
 def get_exchange_method_keyboard(language: str) -> ReplyKeyboardMarkup:
     labels = {
-        "en": [
-            ["💸 Bank Transfer", "🪙 Crypto"],
-            ["🌐 PayPal", "🌐 Skrill"],
-            ["➕ Others"],
-            ["🔙 Back"],
-        ],
-        "fr": [
-            ["💸 Virement", "🪙 Crypto"],
-            ["🌐 PayPal", "🌐 Skrill"],
-            ["➕ Autre"],
-            ["🔙 Retour"],
-        ],
-        "ua": [
-            ["💸 Банківський переказ", "🪙 Крипто"],
-            ["🌐 PayPal", "🌐 Skrill"],
-            ["➕ Інше"],
-            ["🔙 Назад"],
-        ],
+        "en": [["💸 Bank Transfer", "🪙 Crypto"], ["🌐 PayPal", "🌐 Skrill"], ["➕ Others"], ["🔙 Back"]],
+        "fr": [["💸 Virement", "🪙 Crypto"], ["🌐 PayPal", "🌐 Skrill"], ["➕ Autre"], ["🔙 Retour"]],
+        "ua": [["💸 Банківський переказ", "🪙 Крипто"], ["🌐 PayPal", "🌐 Skrill"], ["➕ Інше"], ["🔙 Назад"]],
+        "th": [["💸 โอนเงินผ่านธนาคาร", "🪙 คริปโต"], ["🌐 PayPal", "🌐 Skrill"], ["➕ อื่นๆ"], ["🔙 กลับ"]],
     }
     return ReplyKeyboardMarkup(labels.get(language, labels["en"]), resize_keyboard=True, one_time_keyboard=False)
 
 
 def get_receive_method_keyboard(language: str) -> ReplyKeyboardMarkup:
     labels = {
-        "en": [
-            ["💸 Bank Transfer", "🪙 Crypto"],
-            ["🌐 PayPal", "🌐 Skrill"],
-            ["💵 Cash", "➕ Others"],
-            ["🔙 Back"],
-        ],
-        "fr": [
-            ["💸 Virement", "🪙 Crypto"],
-            ["🌐 PayPal", "🌐 Skrill"],
-            ["💵 Cash", "➕ Autre"],
-            ["🔙 Retour"],
-        ],
-        "ua": [
-            ["💸 Банківський переказ", "🪙 Крипто"],
-            ["🌐 PayPal", "🌐 Skrill"],
-            ["💵 Готівка", "➕ Інше"],
-            ["🔙 Назад"],
-        ],
+        "en": [["💸 Bank Transfer", "🪙 Crypto"], ["🌐 PayPal", "🌐 Skrill"], ["💵 Cash", "➕ Others"], ["🔙 Back"]],
+        "fr": [["💸 Virement", "🪙 Crypto"], ["🌐 PayPal", "🌐 Skrill"], ["💵 Cash", "➕ Autre"], ["🔙 Retour"]],
+        "ua": [["💸 Банківський переказ", "🪙 Крипто"], ["🌐 PayPal", "🌐 Skrill"], ["💵 Готівка", "➕ Інше"], ["🔙 Назад"]],
+        "th": [["💸 โอนเงินผ่านธนาคาร", "🪙 คริปโต"], ["🌐 PayPal", "🌐 Skrill"], ["💵 เงินสด", "➕ อื่นๆ"], ["🔙 กลับ"]],
     }
     return ReplyKeyboardMarkup(labels.get(language, labels["en"]), resize_keyboard=True, one_time_keyboard=False)
 
 
 def get_cash_option_keyboard(language: str) -> ReplyKeyboardMarkup:
     labels = {
-        "en": [
-            ["🇫🇷 EUR — Paris", "🇺🇸 USD — Las Vegas"],
-            ["🇲🇦 MAD — Marrakech", "🇹🇭 THB — Bangkok"],
-            ["➕ Other"],
-            ["🔙 Back"],
-        ],
-        "fr": [
-            ["🇫🇷 EUR — Paris", "🇺🇸 USD — Las Vegas"],
-            ["🇲🇦 MAD — Marrakech", "🇹🇭 THB — Bangkok"],
-            ["➕ Autre"],
-            ["🔙 Retour"],
-        ],
-        "ua": [
-            ["🇫🇷 EUR — Париж", "🇺🇸 USD — Лас-Вегас"],
-            ["🇲🇦 MAD — Марракеш", "🇹🇭 THB — Бангкок"],
-            ["➕ Інше"],
-            ["🔙 Назад"],
-        ],
+        "en": [["🇫🇷 EUR — Paris", "🇺🇸 USD — Las Vegas"], ["🇲🇦 MAD — Marrakech", "🇹🇭 THB — Bangkok"], ["➕ Other"], ["🔙 Back"]],
+        "fr": [["🇫🇷 EUR — Paris", "🇺🇸 USD — Las Vegas"], ["🇲🇦 MAD — Marrakech", "🇹🇭 THB — Bangkok"], ["➕ Autre"], ["🔙 Retour"]],
+        "ua": [["🇫🇷 EUR — Париж", "🇺🇸 USD — Лас-Вегас"], ["🇲🇦 MAD — Марракеш", "🇹🇭 THB — Бангкок"], ["➕ Інше"], ["🔙 Назад"]],
+        "th": [["🇫🇷 EUR — Paris", "🇺🇸 USD — Las Vegas"], ["🇲🇦 MAD — Marrakech", "🇹🇭 THB — Bangkok"], ["➕ อื่นๆ"], ["🔙 กลับ"]],
     }
     return ReplyKeyboardMarkup(labels.get(language, labels["en"]), resize_keyboard=True, one_time_keyboard=False)
 
@@ -464,6 +451,7 @@ def get_bank_currency_keyboard(language: str) -> ReplyKeyboardMarkup:
         "en": [["EUR", "USD"], ["THB", "GBP"], ["➕ Other"], ["🔙 Back"]],
         "fr": [["EUR", "USD"], ["THB", "GBP"], ["➕ Autre"], ["🔙 Retour"]],
         "ua": [["EUR", "USD"], ["THB", "GBP"], ["➕ Інше"], ["🔙 Назад"]],
+        "th": [["EUR", "USD"], ["THB", "GBP"], ["➕ อื่นๆ"], ["🔙 กลับ"]],
     }
     return ReplyKeyboardMarkup(labels.get(language, labels["en"]), resize_keyboard=True, one_time_keyboard=False)
 
@@ -473,6 +461,7 @@ def get_bank_method_keyboard(language: str) -> ReplyKeyboardMarkup:
         "en": [["Wise", "Revolut"], ["SEPA (EUR - Europe)", "SWIFT (International)"], ["➕ Other"], ["🔙 Back"]],
         "fr": [["Wise", "Revolut"], ["SEPA (EUR - Europe)", "SWIFT (International)"], ["➕ Autre"], ["🔙 Retour"]],
         "ua": [["Wise", "Revolut"], ["SEPA (EUR - Europe)", "SWIFT (International)"], ["➕ Інше"], ["🔙 Назад"]],
+        "th": [["Wise", "Revolut"], ["SEPA (EUR - Europe)", "SWIFT (International)"], ["➕ อื่นๆ"], ["🔙 กลับ"]],
     }
     return ReplyKeyboardMarkup(labels.get(language, labels["en"]), resize_keyboard=True, one_time_keyboard=False)
 
@@ -482,6 +471,7 @@ def get_crypto_asset_keyboard(language: str) -> ReplyKeyboardMarkup:
         "en": [["USDT", "USDC"], ["➕ Other"], ["🔙 Back"]],
         "fr": [["USDT", "USDC"], ["➕ Autre"], ["🔙 Retour"]],
         "ua": [["USDT", "USDC"], ["➕ Інше"], ["🔙 Назад"]],
+        "th": [["USDT", "USDC"], ["➕ อื่นๆ"], ["🔙 กลับ"]],
     }
     return ReplyKeyboardMarkup(labels.get(language, labels["en"]), resize_keyboard=True, one_time_keyboard=False)
 
@@ -491,6 +481,7 @@ def get_crypto_network_keyboard(language: str) -> ReplyKeyboardMarkup:
         "en": [["TRC20", "ERC20"], ["➕ Other"], ["🔙 Back"]],
         "fr": [["TRC20", "ERC20"], ["➕ Autre"], ["🔙 Retour"]],
         "ua": [["TRC20", "ERC20"], ["➕ Інше"], ["🔙 Назад"]],
+        "th": [["TRC20", "ERC20"], ["➕ อื่นๆ"], ["🔙 กลับ"]],
     }
     return ReplyKeyboardMarkup(labels.get(language, labels["en"]), resize_keyboard=True, one_time_keyboard=False)
 
@@ -500,90 +491,51 @@ def get_wallet_currency_keyboard(language: str) -> ReplyKeyboardMarkup:
         "en": [["EUR", "USD"], ["➕ Other"], ["🔙 Back"]],
         "fr": [["EUR", "USD"], ["➕ Autre"], ["🔙 Retour"]],
         "ua": [["EUR", "USD"], ["➕ Інше"], ["🔙 Назад"]],
+        "th": [["EUR", "USD"], ["➕ อื่นๆ"], ["🔙 กลับ"]],
     }
     return ReplyKeyboardMarkup(labels.get(language, labels["en"]), resize_keyboard=True, one_time_keyboard=False)
 
 
 def get_amount_choice_keyboard(language: str) -> ReplyKeyboardMarkup:
     labels = {
-        "en": [
-            ["✏️ Amount I send"],
-            ["🎯 Amount I want to receive"],
-            ["🔙 Back"],
-        ],
-        "fr": [
-            ["✏️ Montant que j’envoie"],
-            ["🎯 Montant que je veux recevoir"],
-            ["🔙 Retour"],
-        ],
-        "ua": [
-            ["✏️ Сума, яку я надсилаю"],
-            ["🎯 Сума, яку я хочу отримати"],
-            ["🔙 Назад"],
-        ],
+        "en": [["✏️ Amount I send"], ["🎯 Amount I want to receive"], ["🔙 Back"]],
+        "fr": [["✏️ Montant que j’envoie"], ["🎯 Montant que je veux recevoir"], ["🔙 Retour"]],
+        "ua": [["✏️ Сума, яку я надсилаю"], ["🎯 Сума, яку я хочу отримати"], ["🔙 Назад"]],
+        "th": [["✏️ จำนวนที่ฉันส่ง"], ["🎯 จำนวนที่ฉันต้องการรับ"], ["🔙 กลับ"]],
     }
     return ReplyKeyboardMarkup(labels.get(language, labels["en"]), resize_keyboard=True, one_time_keyboard=False)
 
 
 def get_rates_category_keyboard(language: str) -> ReplyKeyboardMarkup:
     labels = {
-        "en": [
-            ["💸 Bank Transfer", "💵 Cash"],
-            ["🌐 PayPal", "🌐 Skrill"],
-            ["➕ Other"],
-            ["🔙 Back"],
-        ],
-        "fr": [
-            ["💸 Virement", "💵 Cash"],
-            ["🌐 PayPal", "🌐 Skrill"],
-            ["➕ Autre"],
-            ["🔙 Retour"],
-        ],
-        "ua": [
-            ["💸 Банківський переказ", "💵 Готівка"],
-            ["🌐 PayPal", "🌐 Skrill"],
-            ["➕ Інше"],
-            ["🔙 Назад"],
-        ],
+        "en": [["💸 Bank Transfer", "💵 Cash"], ["🌐 PayPal", "🌐 Skrill"], ["➕ Other"], ["🔙 Back"]],
+        "fr": [["💸 Virement", "💵 Cash"], ["🌐 PayPal", "🌐 Skrill"], ["➕ Autre"], ["🔙 Retour"]],
+        "ua": [["💸 Банківський переказ", "💵 Готівка"], ["🌐 PayPal", "🌐 Skrill"], ["➕ Інше"], ["🔙 Назад"]],
+        "th": [["💸 โอนเงินผ่านธนาคาร", "💵 เงินสด"], ["🌐 PayPal", "🌐 Skrill"], ["➕ อื่นๆ"], ["🔙 กลับ"]],
     }
     return ReplyKeyboardMarkup(labels.get(language, labels["en"]), resize_keyboard=True, one_time_keyboard=False)
 
 
 def get_cash_rates_keyboard(language: str) -> ReplyKeyboardMarkup:
     labels = {
-        "en": [
-            ["🇹🇭 Bangkok THB", "🇫🇷 Paris EUR"],
-            ["🇺🇸 Las Vegas USD", "🇲🇦 Marrakech MAD"],
-            ["🔙 Back"],
-        ],
-        "fr": [
-            ["🇹🇭 Bangkok THB", "🇫🇷 Paris EUR"],
-            ["🇺🇸 Las Vegas USD", "🇲🇦 Marrakech MAD"],
-            ["🔙 Retour"],
-        ],
-        "ua": [
-            ["🇹🇭 Bangkok THB", "🇫🇷 Париж EUR"],
-            ["🇺🇸 Лас-Вегас USD", "🇲🇦 Марракеш MAD"],
-            ["🔙 Назад"],
-        ],
+        "en": [["🇹🇭 Bangkok THB", "🇫🇷 Paris EUR"], ["🇺🇸 Las Vegas USD", "🇲🇦 Marrakech MAD"], ["🔙 Back"]],
+        "fr": [["🇹🇭 Bangkok THB", "🇫🇷 Paris EUR"], ["🇺🇸 Las Vegas USD", "🇲🇦 Marrakech MAD"], ["🔙 Retour"]],
+        "ua": [["🇹🇭 Bangkok THB", "🇫🇷 Париж EUR"], ["🇺🇸 Лас-Вегас USD", "🇲🇦 Марракеш MAD"], ["🔙 Назад"]],
+        "th": [["🇹🇭 กรุงเทพ THB", "🇫🇷 ปารีส EUR"], ["🇺🇸 ลาสเวกัส USD", "🇲🇦 มาร์ราเกช MAD"], ["🔙 กลับ"]],
     }
     return ReplyKeyboardMarkup(labels.get(language, labels["en"]), resize_keyboard=True, one_time_keyboard=False)
 
 
 def get_exchange_result_keyboard(language: str) -> InlineKeyboardMarkup:
     labels = {
-        "en": [
-            [InlineKeyboardButton("✅ Send Request", callback_data="exchange_send_request")],
-            [InlineKeyboardButton("❌ Cancel", callback_data="exchange_cancel")],
-        ],
-        "fr": [
-            [InlineKeyboardButton("✅ Envoyer la demande", callback_data="exchange_send_request")],
-            [InlineKeyboardButton("❌ Annuler", callback_data="exchange_cancel")],
-        ],
-        "ua": [
-            [InlineKeyboardButton("✅ Надіслати запит", callback_data="exchange_send_request")],
-            [InlineKeyboardButton("❌ Скасувати", callback_data="exchange_cancel")],
-        ],
+        "en": [[InlineKeyboardButton("✅ Send Request", callback_data="exchange_send_request")],
+               [InlineKeyboardButton("❌ Cancel", callback_data="exchange_cancel")]],
+        "fr": [[InlineKeyboardButton("✅ Envoyer la demande", callback_data="exchange_send_request")],
+               [InlineKeyboardButton("❌ Annuler", callback_data="exchange_cancel")]],
+        "ua": [[InlineKeyboardButton("✅ Надіслати запит", callback_data="exchange_send_request")],
+               [InlineKeyboardButton("❌ Скасувати", callback_data="exchange_cancel")]],
+        "th": [[InlineKeyboardButton("✅ ส่งคำขอ", callback_data="exchange_send_request")],
+               [InlineKeyboardButton("❌ ยกเลิก", callback_data="exchange_cancel")]],
     }
     return InlineKeyboardMarkup(labels.get(language, labels["en"]))
 
@@ -628,52 +580,14 @@ def get_text(language: str, key: str) -> str:
             "request_cancelled": "❌ Request cancelled.",
             "custom_request_prompt": "Please describe your request:",
             "custom_request_sent": "✅ Your request has been sent.\n\nReference: {deal_id}\n\nOur team will review it and get back to you shortly.",
-            "rates_bank_transfer": (
-                "💸 Bank Transfer Rates\n\n"
-                "Bank Transfer ↔ Crypto: 2%\n"
-                "Minimum fee: 40 USD\n\n"
-                "Final quote confirmed by support."
-            ),
-            "rates_paypal": (
-                "🌐 PayPal Rates\n\n"
-                "Crypto → PayPal: 0%\n"
-                "PayPal → Crypto: 4%\n\n"
-                "Final quote confirmed by support."
-            ),
-            "rates_skrill": (
-                "🌐 Skrill Rates\n\n"
-                "Crypto → Skrill: 0%\n"
-                "Skrill → Crypto: 2%\n\n"
-                "Final quote confirmed by support."
-            ),
-            "rates_other": (
-                "➕ Other Requests\n\n"
-                "For other currencies or custom requests, please contact support."
-            ),
-            "rates_cash_bangkok": (
-                "🇹🇭 Bangkok THB Rates\n\n"
-                "Cash ↔ Crypto: 2.5%\n"
-                "Based on Bitkub market rate\n"
-                "Below 3,000 USD: minimum 75 USD fee\n\n"
-                "Final quote confirmed by support."
-            ),
-            "rates_cash_paris": (
-                "🇫🇷 Paris EUR Rates\n\n"
-                "Cash ↔ Crypto: 2%\n"
-                "Based on XE rate\n"
-                "Below 5,000 EUR: minimum 100 EUR fee\n\n"
-                "Final quote confirmed by support."
-            ),
-            "rates_cash_vegas": (
-                "🇺🇸 Las Vegas USD Rates\n\n"
-                "Cash ↔ Crypto: 2%\n"
-                "Minimum trade: 10,000 USD\n\n"
-                "Final quote confirmed by support."
-            ),
-            "rates_cash_marrakech": (
-                "🇲🇦 Marrakech MAD Rates\n\n"
-                "Please contact support for MAD cash requests."
-            ),
+            "rates_bank_transfer": "💸 Bank Transfer Rates\n\nBank Transfer ↔ Crypto: 2%\nMinimum fee: 40 USD\n\nFinal quote confirmed by support.",
+            "rates_paypal": "🌐 PayPal Rates\n\nCrypto → PayPal: 0%\nPayPal → Crypto: 4%\n\nFinal quote confirmed by support.",
+            "rates_skrill": "🌐 Skrill Rates\n\nCrypto → Skrill: 0%\nSkrill → Crypto: 2%\n\nFinal quote confirmed by support.",
+            "rates_other": "➕ Other Requests\n\nFor other currencies or custom requests, please contact support.",
+            "rates_cash_bangkok": "🇹🇭 Bangkok THB Rates\n\nCash ↔ Crypto: 2.5%\nBased on Bitkub market rate\nBelow 3,000 USD: minimum 75 USD fee\n\nFinal quote confirmed by support.",
+            "rates_cash_paris": "🇫🇷 Paris EUR Rates\n\nCash ↔ Crypto: 2%\nBased on XE rate\nBelow 5,000 EUR: minimum 100 EUR fee\n\nFinal quote confirmed by support.",
+            "rates_cash_vegas": "🇺🇸 Las Vegas USD Rates\n\nCash ↔ Crypto: 2%\nMinimum trade: 10,000 USD\n\nFinal quote confirmed by support.",
+            "rates_cash_marrakech": "🇲🇦 Marrakech MAD Rates\n\nPlease contact support for MAD cash requests.",
         },
         "fr": {
             "welcome": "Welcome to Dervishaj Bot.\n\nSecure and fast fiat ↔ crypto exchange service.\n\nPlease select your language:",
@@ -709,52 +623,14 @@ def get_text(language: str, key: str) -> str:
             "request_cancelled": "❌ Demande annulée.",
             "custom_request_prompt": "Veuillez décrire votre demande :",
             "custom_request_sent": "✅ Votre demande a bien été envoyée.\n\nRéférence : {deal_id}\n\nNotre équipe va l’examiner et revenir vers vous rapidement.",
-            "rates_bank_transfer": (
-                "💸 Tarifs Virement\n\n"
-                "Virement ↔ Crypto : 2%\n"
-                "Frais minimum : 40 USD\n\n"
-                "Le devis final sera confirmé par le support."
-            ),
-            "rates_paypal": (
-                "🌐 Tarifs PayPal\n\n"
-                "Crypto → PayPal : 0%\n"
-                "PayPal → Crypto : 4%\n\n"
-                "Le devis final sera confirmé par le support."
-            ),
-            "rates_skrill": (
-                "🌐 Tarifs Skrill\n\n"
-                "Crypto → Skrill : 0%\n"
-                "Skrill → Crypto : 2%\n\n"
-                "Le devis final sera confirmé par le support."
-            ),
-            "rates_other": (
-                "➕ Autres demandes\n\n"
-                "Pour les autres devises ou demandes personnalisées, veuillez contacter le support."
-            ),
-            "rates_cash_bangkok": (
-                "🇹🇭 Tarifs Bangkok THB\n\n"
-                "Cash ↔ Crypto : 2.5%\n"
-                "Basé sur le cours du marché Bitkub\n"
-                "En dessous de 3 000 USD : frais minimum de 75 USD\n\n"
-                "Le devis final sera confirmé par le support."
-            ),
-            "rates_cash_paris": (
-                "🇫🇷 Tarifs Paris EUR\n\n"
-                "Cash ↔ Crypto : 2%\n"
-                "Basé sur le taux XE\n"
-                "En dessous de 5 000 EUR : frais minimum de 100 EUR\n\n"
-                "Le devis final sera confirmé par le support."
-            ),
-            "rates_cash_vegas": (
-                "🇺🇸 Tarifs Las Vegas USD\n\n"
-                "Cash ↔ Crypto : 2%\n"
-                "Montant minimum : 10 000 USD\n\n"
-                "Le devis final sera confirmé par le support."
-            ),
-            "rates_cash_marrakech": (
-                "🇲🇦 Tarifs Marrakech MAD\n\n"
-                "Veuillez contacter le support pour les demandes cash en MAD."
-            ),
+            "rates_bank_transfer": "💸 Tarifs Virement\n\nVirement ↔ Crypto : 2%\nFrais minimum : 40 USD\n\nLe devis final sera confirmé par le support.",
+            "rates_paypal": "🌐 Tarifs PayPal\n\nCrypto → PayPal : 0%\nPayPal → Crypto : 4%\n\nLe devis final sera confirmé par le support.",
+            "rates_skrill": "🌐 Tarifs Skrill\n\nCrypto → Skrill : 0%\nSkrill → Crypto : 2%\n\nLe devis final sera confirmé par le support.",
+            "rates_other": "➕ Autres demandes\n\nPour les autres devises ou demandes personnalisées, veuillez contacter le support.",
+            "rates_cash_bangkok": "🇹🇭 Tarifs Bangkok THB\n\nCash ↔ Crypto : 2.5%\nBasé sur le cours du marché Bitkub\nEn dessous de 3 000 USD : frais minimum de 75 USD\n\nLe devis final sera confirmé par le support.",
+            "rates_cash_paris": "🇫🇷 Tarifs Paris EUR\n\nCash ↔ Crypto : 2%\nBasé sur le taux XE\nEn dessous de 5 000 EUR : frais minimum de 100 EUR\n\nLe devis final sera confirmé par le support.",
+            "rates_cash_vegas": "🇺🇸 Tarifs Las Vegas USD\n\nCash ↔ Crypto : 2%\nMontant minimum : 10 000 USD\n\nLe devis final sera confirmé par le support.",
+            "rates_cash_marrakech": "🇲🇦 Tarifs Marrakech MAD\n\nVeuillez contacter le support pour les demandes cash en MAD.",
         },
         "ua": {
             "welcome": "Welcome to Dervishaj Bot.\n\nSecure and fast fiat ↔ crypto exchange service.\n\nPlease select your language:",
@@ -790,55 +666,72 @@ def get_text(language: str, key: str) -> str:
             "request_cancelled": "❌ Запит скасовано.",
             "custom_request_prompt": "Будь ласка, опишіть ваш запит:",
             "custom_request_sent": "✅ Ваш запит надіслано.\n\nРеференс: {deal_id}\n\nНаша команда перегляне його та зв’яжеться з вами найближчим часом.",
-            "rates_bank_transfer": (
-                "💸 Тарифи банківського переказу\n\n"
-                "Банківський переказ ↔ Крипто: 2%\n"
-                "Мінімальна комісія: 40 USD\n\n"
-                "Фінальний курс підтверджується підтримкою."
-            ),
-            "rates_paypal": (
-                "🌐 Тарифи PayPal\n\n"
-                "Crypto → PayPal: 0%\n"
-                "PayPal → Crypto: 4%\n\n"
-                "Фінальний курс підтверджується підтримкою."
-            ),
-            "rates_skrill": (
-                "🌐 Тарифи Skrill\n\n"
-                "Crypto → Skrill: 0%\n"
-                "Skrill → Crypto: 2%\n\n"
-                "Фінальний курс підтверджується підтримкою."
-            ),
-            "rates_other": (
-                "➕ Інші запити\n\n"
-                "Для інших валют або нестандартних запитів зверніться до підтримки."
-            ),
-            "rates_cash_bangkok": (
-                "🇹🇭 Тарифи Bangkok THB\n\n"
-                "Готівка ↔ Крипто: 2.5%\n"
-                "На основі ринкового курсу Bitkub\n"
-                "Нижче 3 000 USD: мінімальна комісія 75 USD\n\n"
-                "Фінальний курс підтверджується підтримкою."
-            ),
-            "rates_cash_paris": (
-                "🇫🇷 Тарифи Paris EUR\n\n"
-                "Готівка ↔ Крипто: 2%\n"
-                "На основі курсу XE\n"
-                "Нижче 5 000 EUR: мінімальна комісія 100 EUR\n\n"
-                "Фінальний курс підтверджується підтримкою."
-            ),
-            "rates_cash_vegas": (
-                "🇺🇸 Тарифи Las Vegas USD\n\n"
-                "Готівка ↔ Крипто: 2%\n"
-                "Мінімальна сума угоди: 10 000 USD\n\n"
-                "Фінальний курс підтверджується підтримкою."
-            ),
-            "rates_cash_marrakech": (
-                "🇲🇦 Тарифи Marrakech MAD\n\n"
-                "Для готівкових запитів у MAD зверніться до підтримки."
-            ),
+            "rates_bank_transfer": "💸 Тарифи банківського переказу\n\nБанківський переказ ↔ Крипто: 2%\nМінімальна комісія: 40 USD\n\nФінальний курс підтверджується підтримкою.",
+            "rates_paypal": "🌐 Тарифи PayPal\n\nCrypto → PayPal: 0%\nPayPal → Crypto: 4%\n\nФінальний курс підтверджується підтримкою.",
+            "rates_skrill": "🌐 Тарифи Skrill\n\nCrypto → Skrill: 0%\nSkrill → Crypto: 2%\n\nФінальний курс підтверджується підтримкою.",
+            "rates_other": "➕ Інші запити\n\nДля інших валют або нестандартних запитів зверніться до підтримки.",
+            "rates_cash_bangkok": "🇹🇭 Тарифи Bangkok THB\n\nГотівка ↔ Крипто: 2.5%\nНа основі ринкового курсу Bitkub\nНижче 3 000 USD: мінімальна комісія 75 USD\n\nФінальний курс підтверджується підтримкою.",
+            "rates_cash_paris": "🇫🇷 Тарифи Paris EUR\n\nГотівка ↔ Крипто: 2%\nНа основі курсу XE\nНижче 5 000 EUR: мінімальна комісія 100 EUR\n\nФінальний курс підтверджується підтримкою.",
+            "rates_cash_vegas": "🇺🇸 Тарифи Las Vegas USD\n\nГотівка ↔ Крипто: 2%\nМінімальна сума угоди: 10 000 USD\n\nФінальний курс підтверджується підтримкою.",
+            "rates_cash_marrakech": "🇲🇦 Тарифи Marrakech MAD\n\nДля готівкових запитів у MAD зверніться до підтримки.",
+        },
+        "th": {
+            "welcome": "ยินดีต้อนรับสู่ Dervishaj Bot\n\nบริการแลกเปลี่ยน fiat ↔ crypto ที่รวดเร็วและปลอดภัย\n\nกรุณาเลือกภาษา:",
+            "language_set": "ตั้งค่าภาษาเป็นภาษาไทยแล้ว\n\nยินดีต้อนรับสู่ Dervishaj Bot\n\nกรุณาเลือกตัวเลือกด้านล่าง:",
+            "support_prompt": "กรุณาส่งข้อความของคุณ แล้วทีมงานจะตอบกลับโดยเร็วที่สุด",
+            "support_sent": "ข้อความของคุณถูกส่งแล้ว\n\nทีมงานจะติดต่อกลับโดยเร็วที่สุด",
+            "use_menu": "กรุณาใช้ปุ่มเมนูด้านล่าง",
+            "choose_language": "กรุณาเลือกภาษา:",
+            "exchange_send": "คุณต้องการส่งอะไร?",
+            "exchange_receive": "คุณต้องการรับอะไร?",
+            "cash_option": "เลือกตัวเลือกเงินสด:",
+            "bank_currency": "เลือกสกุลเงินของการโอน:",
+            "bank_method": "เลือกวิธีการโอน:",
+            "crypto_asset": "เลือกคริปโต:",
+            "crypto_network": "เลือกเครือข่าย:",
+            "wallet_currency": "เลือกสกุลเงิน:",
+            "choose_amount_type": "คุณต้องการกรอกจำนวนแบบไหน?",
+            "choose_rates_category": "เลือกหมวดหมู่:",
+            "choose_cash_rates_location": "เลือกสถานที่รับเงินสด:",
+            "network_warning": "กรุณาเลือกเครือข่ายให้ถูกต้อง\n\nหากส่งเงินไปผิดเครือข่าย อาจทำให้เงินสูญหายถาวร",
+            "next_receive_method": "ยอดเยี่ยม ตอนนี้เลือกสิ่งที่คุณต้องการรับ",
+            "invalid_amount": "กรุณากรอกจำนวนที่ถูกต้อง",
+            "exchange_summary_title": "คำขอของคุณ:",
+            "exchange_summary_send": "ส่ง: {value}",
+            "exchange_summary_receive": "รับ: {value}",
+            "exchange_summary_entered": "ลูกค้ากรอก: {value}",
+            "exchange_summary_amount": "จำนวนที่กรอก: {value}",
+            "exchange_summary_rate_reference": "อ้างอิงอัตรา: {value}",
+            "exchange_summary_fees": "ค่าธรรมเนียม: {value}",
+            "exchange_summary_final_note_send": "จำนวนที่จะได้รับจริงจะได้รับการยืนยันโดยซัพพอร์ต",
+            "exchange_summary_final_note_receive": "จำนวนที่จะต้องส่งจริงจะได้รับการยืนยันโดยซัพพอร์ต",
+            "request_sent": "✅ คำขอของคุณถูกส่งแล้ว\n\nอ้างอิง: {deal_id}\n\nทีมงานจะตรวจสอบและติดต่อกลับโดยเร็วที่สุด",
+            "request_cancelled": "❌ ยกเลิกคำขอแล้ว",
+            "custom_request_prompt": "กรุณาอธิบายคำขอของคุณ:",
+            "custom_request_sent": "✅ คำขอของคุณถูกส่งแล้ว\n\nอ้างอิง: {deal_id}\n\nทีมงานจะตรวจสอบและติดต่อกลับโดยเร็วที่สุด",
+            "rates_bank_transfer": "💸 ค่าธรรมเนียมโอนเงินผ่านธนาคาร\n\nโอนเงินผ่านธนาคาร ↔ คริปโต: 2%\nค่าธรรมเนียมขั้นต่ำ: 40 USD\n\nราคาสุดท้ายจะได้รับการยืนยันโดยซัพพอร์ต",
+            "rates_paypal": "🌐 ค่าธรรมเนียม PayPal\n\nCrypto → PayPal: 0%\nPayPal → Crypto: 4%\n\nราคาสุดท้ายจะได้รับการยืนยันโดยซัพพอร์ต",
+            "rates_skrill": "🌐 ค่าธรรมเนียม Skrill\n\nCrypto → Skrill: 0%\nSkrill → Crypto: 2%\n\nราคาสุดท้ายจะได้รับการยืนยันโดยซัพพอร์ต",
+            "rates_other": "➕ คำขออื่นๆ\n\nสำหรับสกุลเงินอื่นหรือคำขอพิเศษ กรุณาติดต่อซัพพอร์ต",
+            "rates_cash_bangkok": "🇹🇭 ค่าธรรมเนียม Bangkok THB\n\nเงินสด ↔ คริปโต: 2.5%\nอิงตามอัตราตลาด Bitkub\nต่ำกว่า 3,000 USD: ค่าธรรมเนียมขั้นต่ำ 75 USD\n\nราคาสุดท้ายจะได้รับการยืนยันโดยซัพพอร์ต",
+            "rates_cash_paris": "🇫🇷 ค่าธรรมเนียม Paris EUR\n\nเงินสด ↔ คริปโต: 2%\nอิงตามอัตรา XE\nต่ำกว่า 5,000 EUR: ค่าธรรมเนียมขั้นต่ำ 100 EUR\n\nราคาสุดท้ายจะได้รับการยืนยันโดยซัพพอร์ต",
+            "rates_cash_vegas": "🇺🇸 ค่าธรรมเนียม Las Vegas USD\n\nเงินสด ↔ คริปโต: 2%\nยอดขั้นต่ำ: 10,000 USD\n\nราคาสุดท้ายจะได้รับการยืนยันโดยซัพพอร์ต",
+            "rates_cash_marrakech": "🇲🇦 ค่าธรรมเนียม Marrakech MAD\n\nสำหรับคำขอเงินสด MAD กรุณาติดต่อซัพพอร์ต",
         },
     }
     return texts.get(language, texts["en"])[key]
+
+
+# =========================
+# START
+# =========================
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.clear()
+    await update.message.reply_text(
+        get_text("en", "welcome"),
+        reply_markup=get_language_keyboard(),
+    )
 
 
 # =========================
@@ -1227,6 +1120,66 @@ async def handle_exchange_flow(update: Update, context: ContextTypes.DEFAULT_TYP
 
 
 # =========================
+# SUPPORT / CUSTOM
+# =========================
+
+async def handle_support_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    language = get_user_language(context)
+    user = update.effective_user
+    message_text = update.message.text
+    username = f"@{user.username}" if user.username else "No username"
+    deal_id = generate_deal_id()
+    timestamp = get_timestamp()
+
+    admin_message = (
+        "📞 New Support Message\n\n"
+        f"🆔 Deal ID: {deal_id}\n"
+        f"📌 Status: Pending\n"
+        f"👤 User: {username}\n"
+        f"🆔 Telegram ID: {user.id}\n"
+        f"🌐 Language: {language.upper()}\n"
+        f"🕒 Time: {timestamp}\n\n"
+        f"📝 Message:\n{message_text}"
+    )
+
+    await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text=admin_message)
+    context.user_data["mode"] = None
+
+    await update.message.reply_text(
+        get_text(language, "support_sent"),
+        reply_markup=get_main_menu_keyboard(language),
+    )
+
+
+async def handle_custom_request_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    language = get_user_language(context)
+    user = update.effective_user
+    message_text = update.message.text
+    username = f"@{user.username}" if user.username else "No username"
+    deal_id = generate_deal_id()
+    timestamp = get_timestamp()
+
+    admin_message = (
+        "🧾 New Custom Request\n\n"
+        f"🆔 Deal ID: {deal_id}\n"
+        f"📌 Status: Pending\n"
+        f"👤 User: {username}\n"
+        f"🆔 Telegram ID: {user.id}\n"
+        f"🌐 Language: {language.upper()}\n"
+        f"🕒 Time: {timestamp}\n\n"
+        f"📝 Message:\n{message_text}"
+    )
+
+    await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text=admin_message)
+    context.user_data.clear()
+
+    await update.message.reply_text(
+        get_text(language, "custom_request_sent").format(deal_id=deal_id),
+        reply_markup=get_main_menu_keyboard(language),
+    )
+
+
+# =========================
 # RATES FLOW
 # =========================
 
@@ -1331,7 +1284,6 @@ async def handle_rates_flow(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    language = get_user_language(context)
 
     if query.data == "lang_en":
         context.user_data["language"] = "en"
@@ -1359,6 +1311,17 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=get_main_menu_keyboard("ua"),
         )
         return
+
+    if query.data == "lang_th":
+        context.user_data["language"] = "th"
+        context.user_data["mode"] = None
+        await query.message.reply_text(
+            get_text("th", "language_set"),
+            reply_markup=get_main_menu_keyboard("th"),
+        )
+        return
+
+    language = get_user_language(context)
 
     if query.data == "exchange_send_request":
         user = query.from_user
