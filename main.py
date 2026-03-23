@@ -1,6 +1,5 @@
 import os
 from datetime import datetime
-from dotenv import load_dotenv
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -16,10 +15,8 @@ from telegram.ext import (
     filters,
 )
 
-load_dotenv()
-
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_CHAT_ID = int(os.getenv("ADMIN_CHAT_ID", "0"))
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+ADMIN_CHAT_ID = int(os.environ.get("ADMIN_CHAT_ID", "0"))
 
 
 # =========================
@@ -1185,10 +1182,10 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     if not BOT_TOKEN:
-        raise ValueError("BOT_TOKEN is missing in .env")
+        raise ValueError("BOT_TOKEN is missing")
 
     if ADMIN_CHAT_ID == 0:
-        raise ValueError("ADMIN_CHAT_ID is missing or invalid in .env")
+        raise ValueError("ADMIN_CHAT_ID is missing or invalid")
 
     app = Application.builder().token(BOT_TOKEN).build()
 
