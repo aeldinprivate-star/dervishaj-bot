@@ -101,6 +101,36 @@ def normalize_amount_mode(user_text: str):
     return mapping.get(user_text)
 
 
+def normalize_rates_category(user_text: str):
+    mapping = {
+        "💸 Bank Transfer": "bank_transfer",
+        "💸 Virement": "bank_transfer",
+        "💸 Банківський переказ": "bank_transfer",
+        "💵 Cash": "cash",
+        "💵 Готівка": "cash",
+        "🌐 PayPal": "paypal",
+        "🌐 Skrill": "skrill",
+        "➕ Other": "other",
+        "➕ Autre": "other",
+        "➕ Інше": "other",
+    }
+    return mapping.get(user_text)
+
+
+def normalize_cash_rates_location(user_text: str):
+    mapping = {
+        "🇹🇭 Bangkok THB": "bangkok_thb",
+        "🇹🇭 Бангкок THB": "bangkok_thb",
+        "🇫🇷 Paris EUR": "paris_eur",
+        "🇫🇷 Париж EUR": "paris_eur",
+        "🇺🇸 Las Vegas USD": "vegas_usd",
+        "🇺🇸 Лас-Вегас USD": "vegas_usd",
+        "🇲🇦 Marrakech MAD": "marrakech_mad",
+        "🇲🇦 Марракеш MAD": "marrakech_mad",
+    }
+    return mapping.get(user_text)
+
+
 def format_method(method: str, language: str) -> str:
     labels = {
         "en": {
@@ -497,6 +527,51 @@ def get_amount_choice_keyboard(language: str) -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(labels.get(language, labels["en"]), resize_keyboard=True, one_time_keyboard=False)
 
 
+def get_rates_category_keyboard(language: str) -> ReplyKeyboardMarkup:
+    labels = {
+        "en": [
+            ["💸 Bank Transfer", "💵 Cash"],
+            ["🌐 PayPal", "🌐 Skrill"],
+            ["➕ Other"],
+            ["🔙 Back"],
+        ],
+        "fr": [
+            ["💸 Virement", "💵 Cash"],
+            ["🌐 PayPal", "🌐 Skrill"],
+            ["➕ Autre"],
+            ["🔙 Retour"],
+        ],
+        "ua": [
+            ["💸 Банківський переказ", "💵 Готівка"],
+            ["🌐 PayPal", "🌐 Skrill"],
+            ["➕ Інше"],
+            ["🔙 Назад"],
+        ],
+    }
+    return ReplyKeyboardMarkup(labels.get(language, labels["en"]), resize_keyboard=True, one_time_keyboard=False)
+
+
+def get_cash_rates_keyboard(language: str) -> ReplyKeyboardMarkup:
+    labels = {
+        "en": [
+            ["🇹🇭 Bangkok THB", "🇫🇷 Paris EUR"],
+            ["🇺🇸 Las Vegas USD", "🇲🇦 Marrakech MAD"],
+            ["🔙 Back"],
+        ],
+        "fr": [
+            ["🇹🇭 Bangkok THB", "🇫🇷 Paris EUR"],
+            ["🇺🇸 Las Vegas USD", "🇲🇦 Marrakech MAD"],
+            ["🔙 Retour"],
+        ],
+        "ua": [
+            ["🇹🇭 Bangkok THB", "🇫🇷 Париж EUR"],
+            ["🇺🇸 Las Vegas USD", "🇲🇦 Marrakech MAD"],
+            ["🔙 Назад"],
+        ],
+    }
+    return ReplyKeyboardMarkup(labels.get(language, labels["en"]), resize_keyboard=True, one_time_keyboard=False)
+
+
 def get_exchange_result_keyboard(language: str) -> InlineKeyboardMarkup:
     labels = {
         "en": [
@@ -537,6 +612,8 @@ def get_text(language: str, key: str) -> str:
             "crypto_network": "Select network:",
             "wallet_currency": "Select currency:",
             "choose_amount_type": "Which amount do you want to enter?",
+            "choose_rates_category": "Select a category:",
+            "choose_cash_rates_location": "Select a cash location:",
             "network_warning": "Please make sure to select the correct network.\n\nSending funds on the wrong network may result in permanent loss.",
             "next_receive_details": "Great. Now let's set the receive details.",
             "invalid_amount": "Please enter a valid amount.",
@@ -553,20 +630,51 @@ def get_text(language: str, key: str) -> str:
             "request_cancelled": "❌ Request cancelled.",
             "custom_request_prompt": "Please describe your request:",
             "custom_request_sent": "✅ Your request has been sent.\n\nReference: {deal_id}\n\nOur team will review it and get back to you shortly.",
-            "rates_text": (
-                "Our Fees:\n\n"
-                "Bank Transfer ↔ Crypto: 2% (minimum 40 USD)\n\n"
-                "Cash Bangkok (THB): 2.5% based on Bitkub market rate\n"
-                "- Below 3,000 USD: minimum 75 USD fee\n\n"
-                "Cash Paris (EUR): 2% based on XE rate\n"
-                "- Below 5,000 EUR: minimum 100 EUR fee\n\n"
-                "Cash Las Vegas (USD): 2%\n"
-                "- Minimum trade: 10,000 USD\n\n"
+            "rates_bank_transfer": (
+                "💸 Bank Transfer Rates\n\n"
+                "Bank Transfer ↔ Crypto: 2%\n"
+                "Minimum fee: 40 USD\n\n"
+                "Final quote confirmed by support."
+            ),
+            "rates_paypal": (
+                "🌐 PayPal Rates\n\n"
                 "Crypto → PayPal: 0%\n"
                 "PayPal → Crypto: 4%\n\n"
+                "Final quote confirmed by support."
+            ),
+            "rates_skrill": (
+                "🌐 Skrill Rates\n\n"
                 "Crypto → Skrill: 0%\n"
                 "Skrill → Crypto: 2%\n\n"
-                "For other requests, please contact support."
+                "Final quote confirmed by support."
+            ),
+            "rates_other": (
+                "➕ Other Requests\n\n"
+                "For other currencies or custom requests, please contact support."
+            ),
+            "rates_cash_bangkok": (
+                "🇹🇭 Bangkok THB Rates\n\n"
+                "Cash ↔ Crypto: 2.5%\n"
+                "Based on Bitkub market rate\n"
+                "Below 3,000 USD: minimum 75 USD fee\n\n"
+                "Final quote confirmed by support."
+            ),
+            "rates_cash_paris": (
+                "🇫🇷 Paris EUR Rates\n\n"
+                "Cash ↔ Crypto: 2%\n"
+                "Based on XE rate\n"
+                "Below 5,000 EUR: minimum 100 EUR fee\n\n"
+                "Final quote confirmed by support."
+            ),
+            "rates_cash_vegas": (
+                "🇺🇸 Las Vegas USD Rates\n\n"
+                "Cash ↔ Crypto: 2%\n"
+                "Minimum trade: 10,000 USD\n\n"
+                "Final quote confirmed by support."
+            ),
+            "rates_cash_marrakech": (
+                "🇲🇦 Marrakech MAD Rates\n\n"
+                "Please contact support for MAD cash requests."
             ),
         },
         "fr": {
@@ -585,6 +693,8 @@ def get_text(language: str, key: str) -> str:
             "crypto_network": "Sélectionnez le réseau :",
             "wallet_currency": "Sélectionnez la devise :",
             "choose_amount_type": "Quel montant souhaitez-vous renseigner ?",
+            "choose_rates_category": "Sélectionnez une catégorie :",
+            "choose_cash_rates_location": "Sélectionnez une localisation cash :",
             "network_warning": "Veuillez vous assurer de sélectionner le bon réseau.\n\nUn envoi sur le mauvais réseau peut entraîner une perte définitive des fonds.",
             "next_receive_details": "Parfait. Passons maintenant aux détails de réception.",
             "invalid_amount": "Veuillez saisir un montant valide.",
@@ -601,20 +711,51 @@ def get_text(language: str, key: str) -> str:
             "request_cancelled": "❌ Demande annulée.",
             "custom_request_prompt": "Veuillez décrire votre demande :",
             "custom_request_sent": "✅ Votre demande a bien été envoyée.\n\nRéférence : {deal_id}\n\nNotre équipe va l’examiner et revenir vers vous rapidement.",
-            "rates_text": (
-                "Nos frais :\n\n"
-                "Virement ↔ Crypto : 2% (minimum 40 USD)\n\n"
-                "Cash Bangkok (THB) : 2.5% basé sur le cours du marché Bitkub\n"
-                "- En dessous de 3 000 USD : frais minimum de 75 USD\n\n"
-                "Cash Paris (EUR) : 2% basé sur le taux XE\n"
-                "- En dessous de 5 000 EUR : frais minimum de 100 EUR\n\n"
-                "Cash Las Vegas (USD) : 2%\n"
-                "- Montant minimum : 10 000 USD\n\n"
+            "rates_bank_transfer": (
+                "💸 Tarifs Virement\n\n"
+                "Virement ↔ Crypto : 2%\n"
+                "Frais minimum : 40 USD\n\n"
+                "Le devis final sera confirmé par le support."
+            ),
+            "rates_paypal": (
+                "🌐 Tarifs PayPal\n\n"
                 "Crypto → PayPal : 0%\n"
                 "PayPal → Crypto : 4%\n\n"
+                "Le devis final sera confirmé par le support."
+            ),
+            "rates_skrill": (
+                "🌐 Tarifs Skrill\n\n"
                 "Crypto → Skrill : 0%\n"
                 "Skrill → Crypto : 2%\n\n"
-                "Pour toute autre demande, veuillez contacter le support."
+                "Le devis final sera confirmé par le support."
+            ),
+            "rates_other": (
+                "➕ Autres demandes\n\n"
+                "Pour les autres devises ou demandes personnalisées, veuillez contacter le support."
+            ),
+            "rates_cash_bangkok": (
+                "🇹🇭 Tarifs Bangkok THB\n\n"
+                "Cash ↔ Crypto : 2.5%\n"
+                "Basé sur le cours du marché Bitkub\n"
+                "En dessous de 3 000 USD : frais minimum de 75 USD\n\n"
+                "Le devis final sera confirmé par le support."
+            ),
+            "rates_cash_paris": (
+                "🇫🇷 Tarifs Paris EUR\n\n"
+                "Cash ↔ Crypto : 2%\n"
+                "Basé sur le taux XE\n"
+                "En dessous de 5 000 EUR : frais minimum de 100 EUR\n\n"
+                "Le devis final sera confirmé par le support."
+            ),
+            "rates_cash_vegas": (
+                "🇺🇸 Tarifs Las Vegas USD\n\n"
+                "Cash ↔ Crypto : 2%\n"
+                "Montant minimum : 10 000 USD\n\n"
+                "Le devis final sera confirmé par le support."
+            ),
+            "rates_cash_marrakech": (
+                "🇲🇦 Tarifs Marrakech MAD\n\n"
+                "Veuillez contacter le support pour les demandes cash en MAD."
             ),
         },
         "ua": {
@@ -633,6 +774,8 @@ def get_text(language: str, key: str) -> str:
             "crypto_network": "Оберіть мережу:",
             "wallet_currency": "Оберіть валюту:",
             "choose_amount_type": "Яку суму ви хочете вказати?",
+            "choose_rates_category": "Оберіть категорію:",
+            "choose_cash_rates_location": "Оберіть локацію для готівки:",
             "network_warning": "Будь ласка, переконайтеся, що ви обрали правильну мережу.\n\nВідправка коштів у неправильній мережі може призвести до їх безповоротної втрати.",
             "next_receive_details": "Чудово. Тепер переходимо до деталей отримання.",
             "invalid_amount": "Будь ласка, введіть коректну суму.",
@@ -649,20 +792,51 @@ def get_text(language: str, key: str) -> str:
             "request_cancelled": "❌ Запит скасовано.",
             "custom_request_prompt": "Будь ласка, опишіть ваш запит:",
             "custom_request_sent": "✅ Ваш запит надіслано.\n\nРеференс: {deal_id}\n\nНаша команда перегляне його та зв’яжеться з вами найближчим часом.",
-            "rates_text": (
-                "Наші комісії:\n\n"
-                "Банківський переказ ↔ Крипто: 2% (мінімум 40 USD)\n\n"
-                "Готівка Бангкок (THB): 2.5% на основі ринкового курсу Bitkub\n"
-                "- Нижче 3 000 USD: мінімальна комісія 75 USD\n\n"
-                "Готівка Париж (EUR): 2% на основі курсу XE\n"
-                "- Нижче 5 000 EUR: мінімальна комісія 100 EUR\n\n"
-                "Готівка Лас-Вегас (USD): 2%\n"
-                "- Мінімальна сума: 10 000 USD\n\n"
+            "rates_bank_transfer": (
+                "💸 Тарифи банківського переказу\n\n"
+                "Банківський переказ ↔ Крипто: 2%\n"
+                "Мінімальна комісія: 40 USD\n\n"
+                "Фінальний курс підтверджується підтримкою."
+            ),
+            "rates_paypal": (
+                "🌐 Тарифи PayPal\n\n"
                 "Crypto → PayPal: 0%\n"
                 "PayPal → Crypto: 4%\n\n"
+                "Фінальний курс підтверджується підтримкою."
+            ),
+            "rates_skrill": (
+                "🌐 Тарифи Skrill\n\n"
                 "Crypto → Skrill: 0%\n"
                 "Skrill → Crypto: 2%\n\n"
-                "Для інших запитів зверніться до підтримки."
+                "Фінальний курс підтверджується підтримкою."
+            ),
+            "rates_other": (
+                "➕ Інші запити\n\n"
+                "Для інших валют або нестандартних запитів зверніться до підтримки."
+            ),
+            "rates_cash_bangkok": (
+                "🇹🇭 Тарифи Bangkok THB\n\n"
+                "Готівка ↔ Крипто: 2.5%\n"
+                "На основі ринкового курсу Bitkub\n"
+                "Нижче 3 000 USD: мінімальна комісія 75 USD\n\n"
+                "Фінальний курс підтверджується підтримкою."
+            ),
+            "rates_cash_paris": (
+                "🇫🇷 Тарифи Paris EUR\n\n"
+                "Готівка ↔ Крипто: 2%\n"
+                "На основі курсу XE\n"
+                "Нижче 5 000 EUR: мінімальна комісія 100 EUR\n\n"
+                "Фінальний курс підтверджується підтримкою."
+            ),
+            "rates_cash_vegas": (
+                "🇺🇸 Тарифи Las Vegas USD\n\n"
+                "Готівка ↔ Крипто: 2%\n"
+                "Мінімальна сума угоди: 10 000 USD\n\n"
+                "Фінальний курс підтверджується підтримкою."
+            ),
+            "rates_cash_marrakech": (
+                "🇲🇦 Тарифи Marrakech MAD\n\n"
+                "Для готівкових запитів у MAD зверніться до підтримки."
             ),
         },
     }
@@ -675,7 +849,26 @@ def get_text(language: str, key: str) -> str:
 
 async def go_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = get_user_language(context)
+    mode = context.user_data.get("mode")
     step = context.user_data.get("exchange_step")
+    rates_step = context.user_data.get("rates_step")
+
+    if mode == "rates":
+        if rates_step == "cash":
+            context.user_data["rates_step"] = "main"
+            await update.message.reply_text(
+                get_text(language, "choose_rates_category"),
+                reply_markup=get_rates_category_keyboard(language),
+            )
+            return
+
+        context.user_data["mode"] = None
+        context.user_data["rates_step"] = None
+        await update.message.reply_text(
+            get_text(language, "use_menu"),
+            reply_markup=get_main_menu_keyboard(language),
+        )
+        return
 
     if step == "send":
         context.user_data["mode"] = None
@@ -1147,6 +1340,108 @@ async def handle_exchange_flow(update: Update, context: ContextTypes.DEFAULT_TYP
         return
 
 
+# =========================
+# RATES FLOW
+# =========================
+
+async def handle_rates_flow(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    language = get_user_language(context)
+    user_text = update.message.text
+    step = context.user_data.get("rates_step", "main")
+
+    if is_back(user_text):
+        await go_back(update, context)
+        return
+
+    if step == "main":
+        category = normalize_rates_category(user_text)
+
+        if not category:
+            await update.message.reply_text(
+                get_text(language, "choose_rates_category"),
+                reply_markup=get_rates_category_keyboard(language),
+            )
+            return
+
+        if category == "bank_transfer":
+            await update.message.reply_text(
+                get_text(language, "rates_bank_transfer"),
+                reply_markup=get_rates_category_keyboard(language),
+            )
+            return
+
+        if category == "paypal":
+            await update.message.reply_text(
+                get_text(language, "rates_paypal"),
+                reply_markup=get_rates_category_keyboard(language),
+            )
+            return
+
+        if category == "skrill":
+            await update.message.reply_text(
+                get_text(language, "rates_skrill"),
+                reply_markup=get_rates_category_keyboard(language),
+            )
+            return
+
+        if category == "other":
+            await update.message.reply_text(
+                get_text(language, "rates_other"),
+                reply_markup=get_rates_category_keyboard(language),
+            )
+            return
+
+        if category == "cash":
+            context.user_data["rates_step"] = "cash"
+            await update.message.reply_text(
+                get_text(language, "choose_cash_rates_location"),
+                reply_markup=get_cash_rates_keyboard(language),
+            )
+            return
+
+    if step == "cash":
+        location = normalize_cash_rates_location(user_text)
+
+        if not location:
+            await update.message.reply_text(
+                get_text(language, "choose_cash_rates_location"),
+                reply_markup=get_cash_rates_keyboard(language),
+            )
+            return
+
+        if location == "bangkok_thb":
+            await update.message.reply_text(
+                get_text(language, "rates_cash_bangkok"),
+                reply_markup=get_cash_rates_keyboard(language),
+            )
+            return
+
+        if location == "paris_eur":
+            await update.message.reply_text(
+                get_text(language, "rates_cash_paris"),
+                reply_markup=get_cash_rates_keyboard(language),
+            )
+            return
+
+        if location == "vegas_usd":
+            await update.message.reply_text(
+                get_text(language, "rates_cash_vegas"),
+                reply_markup=get_cash_rates_keyboard(language),
+            )
+            return
+
+        if location == "marrakech_mad":
+            await update.message.reply_text(
+                get_text(language, "rates_cash_marrakech"),
+                reply_markup=get_cash_rates_keyboard(language),
+            )
+            return
+
+
+# =========================
+# BUTTON HANDLER
+# =========================
+
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -1239,6 +1534,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data.clear()
 
 
+# =========================
+# TEXT HANDLER
+# =========================
+
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
     language = get_user_language(context)
@@ -1254,6 +1553,10 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if mode == "exchange":
         await handle_exchange_flow(update, context)
+        return
+
+    if mode == "rates":
+        await handle_rates_flow(update, context)
         return
 
     if user_text in ["💱 Exchange", "💱 Échange", "💱 Обмін"]:
@@ -1273,9 +1576,11 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if user_text in ["📊 Rates", "📊 Tarifs", "📊 Тарифи"]:
+        context.user_data["mode"] = "rates"
+        context.user_data["rates_step"] = "main"
         await update.message.reply_text(
-            get_text(language, "rates_text"),
-            reply_markup=get_main_menu_keyboard(language),
+            get_text(language, "choose_rates_category"),
+            reply_markup=get_rates_category_keyboard(language),
         )
         return
 
